@@ -12,6 +12,7 @@ use GLPI::Agent::Tools::SNMP;
 use constant    hpPeripheral    => '.1.3.6.1.4.1.11.2.3.9' ; # hp.nm.system.net-peripheral
 use constant    hpOfficePrinter => '.1.3.6.1.4.1.29999' ;
 use constant    hpSystem        => '.1.3.6.1.4.1.11.1' ;
+use constant    hpLibrary       => '.1.3.6.1.4.1.11.10.2.1.3.25' ;
 use constant    hpNetPrinter    => hpPeripheral . '.1' ;
 use constant    hpDevice        => hpPeripheral . '.4.2.1' ; # + netPML.netPMLmgmt.device
 
@@ -23,6 +24,12 @@ use constant    model_name      => systemId . '.2.0' ;
 use constant    serial_number   => systemId . '.3.0' ;
 use constant    fw_rom_datecode => systemId . '.5.0' ;
 use constant    fw_rom          => systemId . '.6.0' ;
+
+# System Library
+use constant    libraryId           => '.1.3.6.1.4.1.11.2.36.1.1.2' ;
+use constant    lib_model_name      => libraryId . '.5.0' ;
+use constant    lib_serial_number   => libraryId . '.9.0' ;
+use constant    lib_fw_rom          => libraryId . '.6.0' ;
 
 # Status print engine: status-prt-eng
 use constant    statusPrtEngine => hpDevice . '.4.1.2' ;
@@ -53,6 +60,10 @@ our $mibSupport = [
         sysobjectid => getRegexpOidMatch(hpSystem)
     },
     {
+        name        => "hp-library",
+        sysobjectid => getRegexpOidMatch(hpLibrary)
+    },
+    {
         name        => "hp-laserjet-pro-mfp",
         sysobjectid => getRegexpOidMatch(hpLaserjetProMFP)
     }
@@ -76,6 +87,10 @@ sub getFirmware {
         or return;
 
     my $firmware = $self->_getClean(fw_rom);
+    
+    if(getRegexpOidMatch(hpLibrary)){
+        return $self->get(lib_fw_rom);
+    }
 
     # Eventually extract EEPROM revision from device description
     if (!$firmware && $device->{DESCRIPTION}) {
@@ -96,12 +111,19 @@ sub getFirmwareDate {
 sub getSerial {
     my ($self) = @_;
 
+    if(getRegexpOidMatch(hpLibrary)){
+        return $self->get(lib_serial_number);
+    }
+
     return $self->get(serial_number);
 }
 
 sub getModel {
     my ($self) = @_;
 
+    if(getRegexpOidMatch(hpLibrary)){
+        return $self->get(lib_model_name);
+    }
     # Try first to get model if set in StatusId string
     my $statusId = getCanonicalString($self->get(gdStatusId));
     if ($statusId) {
